@@ -2,24 +2,22 @@ import os
 import wave
 import json
 import pyaudio
+import requests  # Added for HTTP requests
 from vosk import Model, KaldiRecognizer
 
-# Check if Vosk model exists
 if not os.path.exists("model"):
     print("Please download the Vosk model from https://alphacephei.com/vosk/models and unpack as 'model' in the current folder.")
     exit(1)
 
-# Initialize Vosk model and recognizer
 model = Model("model")
-rec = KaldiRecognizer(model, 16000)  # Adjust the sample rate if necessary
+rec = KaldiRecognizer(model, 16000) 
 
-# Function to record audio from microphone
 def record_audio():
     CHUNK = 1024
     FORMAT = pyaudio.paInt16
     CHANNELS = 1
     RATE = 16000
-    RECORD_SECONDS = 5  # Adjust recording duration as needed
+    RECORD_SECONDS = 5  
 
     p = pyaudio.PyAudio()
 
@@ -44,7 +42,6 @@ def record_audio():
 
     return b''.join(frames)
 
-# Main function to perform speech recognition
 def recognize_speech(audio_data):
     if isinstance(audio_data, bytes):
         rec.AcceptWaveform(audio_data)
@@ -55,27 +52,30 @@ def recognize_speech(audio_data):
     else:
         raise ValueError("Audio data should be bytes.")
 
-# File to save recognized text
-output_file = "recognized_text.txt"
+output_file = "../api/recognized_text.txt"
 
-# Main program loop
 if __name__ == "__main__":
     try:
-        run_once = True  # Flag to run only once
+        run_once = True  
         
         while run_once:
-            # Record audio from microphone
             audio_data = record_audio()
 
-            # Perform speech recognition
             recognized_text = recognize_speech(audio_data)
 
-            # Print and save recognized text to a file
             print("Recognized:", recognized_text)
-            with open(output_file, "a") as f:
-                f.write(recognized_text + "\n")
-            
-            run_once = False  # Set flag to False to exit after first run
+
+            # POST request to Flask server
+            url = "http://localhost:5000/upload-file"
+            payload = {'text': recognized_text}
+            headers = {'Content-Type': 'application/json'}
+            response = requests.post(url, json=payload, headers=headers)
+            if response.status_code == 200:
+                print("Text uploaded successfully.")
+            else:
+                print(f"Failed to upload text. Status code: {response.status_code}")
+
+            run_once = False  
 
     except KeyboardInterrupt:
         print("\nProgram interrupted. Closing...")
