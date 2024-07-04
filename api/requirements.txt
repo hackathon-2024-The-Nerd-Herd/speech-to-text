@@ -2,3 +2,4 @@ pyaudio==0.2.11
 vosk==0.3.45
 flask==2.0.1
 werkzeug==2.0.2
+flask-cors==3.0.1
